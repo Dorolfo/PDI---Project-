@@ -29,27 +29,21 @@ Surface makeSurfRev(const Curve &profile, unsigned steps)
         exit(0);
     }
 
-    // Quantidade de amostras ao longo do perfil
     const unsigned m = (unsigned)profile.size();
     if (m < 2 || steps < 3) {
-        // precisa de pelo menos 2 pontos no perfil e 3 fatias de revolução
         return surface;
     }
 
-    // Vamos criar (steps + 1) anéis para fechar a costura (s=0 e s=steps coincidem)
     const unsigned rings = steps + 1;
 
     surface.VV.reserve(rings * m);
     surface.VN.reserve(rings * m);
-    surface.VF.reserve((steps) * (m - 1) * 2); // 2 triângulos por quad
+    surface.VF.reserve((steps) * (m - 1) * 2); 
 
     auto rotY = [](const Vector3f& v, float c, float s) -> Vector3f {
-        // Rotação em torno do eixo Y:
-        // (x, y, z) -> ( x*c + z*s,  y,  -x*s + z*c )
         return Vector3f(v.x()*c + v.z()*s, v.y(), -v.x()*s + v.z()*c);
     };
 
-    // --- 1) Gerar vértices e normais por rotação rígida do perfil ---
     for (unsigned s = 0; s < rings; ++s)
     {
         float theta = 2.0f * M_PI * float(s) / float(steps);
@@ -58,14 +52,10 @@ Surface makeSurfRev(const Curve &profile, unsigned steps)
 
         for (unsigned i = 0; i < m; ++i)
         {
-            // Posição do perfil (no plano XY; z≈0)
             Vector3f P = profile[i].V;
 
-            // Normal do perfil: para perfil 2D, o PDF define N apontando para a esquerda do movimento.
-            // A normal de superfície para revolução é a rotação rígida da normal do perfil.
             Vector3f Np = profile[i].N;
 
-            // Gera ponto e normal rotacionados
             Vector3f Vr = rotY(P, c, si);
             Vector3f Nr = rotY(Np, c, si).normalized();
 
@@ -74,18 +64,10 @@ Surface makeSurfRev(const Curve &profile, unsigned steps)
         }
     }
 
-    // Função para indexar (anel s, ponto do perfil i)
     auto vid = [m](unsigned s, unsigned i) -> unsigned {
         return s * m + i;
     };
 
-    // --- 2) Gerar faces (triângulos), conectando anéis s e s+1 ---
-    // Malha “reticulada”:
-    // a = (s,   i)
-    // b = (s+1, i)
-    // c = (s+1, i+1)
-    // d = (s,   i+1)
-    // Triângulos: (a, b, c) e (a, c, d) em ordem CCW (vistos de fora)
     for (unsigned s = 0; s < steps; ++s)
     {
         for (unsigned i = 0; i < m - 1; ++i)
@@ -114,11 +96,10 @@ Surface makeGenCyl(const Curve &profile, const Curve &sweep )
         exit(0);
     }
 
-    const unsigned m = (unsigned)profile.size(); // pontos no perfil
-    const unsigned n = (unsigned)sweep.size();   // amostras ao longo da varredura
+    const unsigned m = (unsigned)profile.size(); 
+    const unsigned n = (unsigned)sweep.size();   
 
     if (m < 2 || n < 2) {
-        // nada a fazer
         return surface;
     }
 
@@ -126,24 +107,20 @@ Surface makeGenCyl(const Curve &profile, const Curve &sweep )
     surface.VN.reserve(m * n);
     surface.VF.reserve((n - 1) * (m - 1) * 2);
 
-    // --- 1) Geração de vértices e normais ---
-    // Mapeamos perfil (x,y,0) no frame do sweep: x->N, y->B; centro na posição V do sweep.
     for (unsigned s = 0; s < n; ++s)
     {
-        const Vector3f& Vs = sweep[s].V; // origem do frame no espaço
-        const Vector3f& Ts = sweep[s].T; // não usado para posicionar perfil, mas define orientação do frame
-        const Vector3f& Ns = sweep[s].N; // eixo "x" local
-        const Vector3f& Bs = sweep[s].B; // eixo "y" local
+        const Vector3f& Vs = sweep[s].V; 
+        const Vector3f& Ts = sweep[s].T; 
+        const Vector3f& Ns = sweep[s].N; 
+        const Vector3f& Bs = sweep[s].B; 
 
         for (unsigned i = 0; i < m; ++i)
         {
-            const Vector3f& P = profile[i].V; // (x, y, 0) no plano XY
-            const Vector3f& Np = profile[i].N; // (nx, ny, 0) normal 2D do perfil
+            const Vector3f& P = profile[i].V; 
+            const Vector3f& Np = profile[i].N;
 
-            // posição: leva x ao longo de N, y ao longo de B
             Vector3f Vr = Vs + P.x() * Ns + P.y() * Bs;
 
-            // normal: combina nx*N + ny*B (nada de componente em T)
             Vector3f Nr = (Np.x() * Ns + Np.y() * Bs).normalized();
 
             surface.VV.push_back(Vr);
@@ -151,18 +128,10 @@ Surface makeGenCyl(const Curve &profile, const Curve &sweep )
         }
     }
 
-    // Indexador (anel s, ponto i)
     auto vid = [m](unsigned s, unsigned i) -> unsigned {
         return s * m + i;
     };
 
-    // --- 2) Geração das faces (triângulos) ligando anéis consecutivos ---
-    // Para cada quad:
-    // a = (s,   i)
-    // b = (s+1, i)
-    // c = (s+1, i+1)
-    // d = (s,   i+1)
-    // Triângulos CCW: (a,b,c) e (a,c,d)
     for (unsigned s = 0; s < n - 1; ++s)
     {
         for (unsigned i = 0; i < m - 1; ++i)
