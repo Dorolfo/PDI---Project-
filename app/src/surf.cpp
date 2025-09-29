@@ -77,8 +77,8 @@ Surface makeSurfRev(const Curve &profile, unsigned steps)
             unsigned c = vid(s+1, i+1);
             unsigned d = vid(s,   i+1);
 
-            surface.VF.push_back(Tup3u(a, b, c));
-            surface.VF.push_back(Tup3u(a, c, d));
+            surface.VF.push_back(Tup3u(a, c, b));
+            surface.VF.push_back(Tup3u(a, d, c));
         }
     }
 
@@ -141,8 +141,8 @@ Surface makeGenCyl(const Curve &profile, const Curve &sweep )
             unsigned c = vid(s+1, i+1);
             unsigned d = vid(s,   i+1);
 
-            surface.VF.push_back(Tup3u(a, b, c));
-            surface.VF.push_back(Tup3u(a, c, d));
+            surface.VF.push_back(Tup3u(a, c, b));
+            surface.VF.push_back(Tup3u(a, d, c));
         }
     }
 
@@ -162,11 +162,9 @@ void drawSurface(const Surface &surface, bool shaded)
         glEnable(GL_LIGHTING);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-        // This tells openGL to *not* draw backwards-facing triangles.
-        // This is more efficient, and in addition it will help you
-        // make sure that your triangles are drawn in the right order.
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_BACK);
+        // Disable face culling to show both front and back faces
+        // This prevents issues with complex geometries like weird.swp
+        glDisable(GL_CULL_FACE);
     }
     else
     {        
